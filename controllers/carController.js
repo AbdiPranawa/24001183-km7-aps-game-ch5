@@ -11,6 +11,7 @@ const createCar = async (req, res) => {
       brand,
       year,
       createdBy: userId,
+      updatedBy: userId,
     });
 
     res.status(201).json({
@@ -63,11 +64,17 @@ const getAllCars = async (req, res) => {
     const offset = (pageNum - 1) * pageSize;
 
     const totalCount = await Cars.count({
-      where: condition,
+      where: {
+        ...condition,
+        deletedAt: null,
+      },
     });
 
     const cars = await Cars.findAll({
-      where: condition,
+      where: {
+        ...condition,
+        deletedAt: null,
+      },
       limit: pageSize,
       offset,
     });
@@ -116,6 +123,7 @@ const getCarById = async (req, res) => {
     const car = await Cars.findOne({
       where: {
         id,
+        deletedAt: null,
       },
     });
 
@@ -159,12 +167,14 @@ const getCarById = async (req, res) => {
 
 const updateCar = async (req, res) => {
   const id = req.params.id;
+  const userId = req.user.id;
   const { name, brand, year } = req.body;
 
   try {
     const car = await Cars.findOne({
       where: {
         id,
+        deletedAt: null,
       },
     });
 
@@ -185,21 +195,22 @@ const updateCar = async (req, res) => {
         updatedBy: userId,
       },
       {
-        where: { id },
+        where: {
+          id,
+        },
       }
     );
 
+    const updatedCar = await Cars.findOne({
+      where: { id },
+    });
+
     res.status(200).json({
       status: "Success",
-      message: "Success update car",
+      message: "Success update car data",
       isSuccess: true,
       data: {
-        car: {
-          id,
-          name,
-          brand,
-          year,
-        },
+        updatedCar,
       },
     });
   } catch (error) {
@@ -231,6 +242,7 @@ const deleteCar = async (req, res) => {
     const car = await Cars.findOne({
       where: {
         id,
+        deletedAt: null, // Pastikan kita hanya mencari mobil yang belum dihapus
       },
     });
 
@@ -243,33 +255,70 @@ const deleteCar = async (req, res) => {
       });
     }
 
-    await Cars.update({ deletedBy: userId }, { where: { id } });
+    // Mengupdate deletedBy dan melakukan soft delete
+    await Cars.update(
+      {
+        deletedBy: userId,
+      },
+      {
+        where: {
+          id,
+        },
+      }
+    );
 
+    // Menghapus mobil dengan soft delete
     await Cars.destroy({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
     res.status(200).json({
       status: "Success",
-      message: "Success delete car",
+      message: "Success delete car data",
       isSuccess: true,
       data: null,
     });
   } catch (error) {
     console.log(error.name);
-    if (error.name === "SequelizeValidationError") {
-      const errorMessage = error.errors.map((err) => err.message);
-      return res.status(400).json({
-        status: "Fail",
-        message: errorMessage[0],
-        isSuccess: false,
-        data: null,
-      });
-    }
-
     res.status(500).json({
       status: "Fail",
       message: error.message,
+      isSuccess: false,
+      data: null,
+    });
+  }
+};
+
+const getDeletedCars = async (req, res) => {
+  try {
+    const deletedCars = await Cars.findAll({
+      where: {
+        deletedAt: { [Op.ne]: null }, // Memfilter mobil yang telah dihapus
+      },
+      include: [
+        {
+          model: Users,
+          as: "deletedByUser", // Mengaitkan model Users untuk mendapatkan nama penghapus
+          attributes: ["id", "name"], // Atribut yang ingin ditampilkan
+        },
+      ],
+    });
+
+    res.status(200).json({
+      status: "Success",
+      message: "Successfully retrieved deleted cars",
+      isSuccess: true,
+      data: {
+        deletedCars,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: "Failed",
+      message: "An unexpected error occurred",
       isSuccess: false,
       data: null,
     });
@@ -282,4 +331,5 @@ module.exports = {
   getCarById,
   updateCar,
   deleteCar,
+  getDeletedCars,
 };

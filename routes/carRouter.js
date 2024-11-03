@@ -8,5 +8,6 @@ router.get("", carController.getAllCars);
 router.get("/:id", authenticate.authenticateToken, authenticate.authenticateAdmin, carController.getCarById);
 router.patch("/:id", authenticate.authenticateToken, authenticate.authenticateAdmin, carController.updateCar);
 router.delete("/:id", authenticate.authenticateToken, authenticate.authenticateAdmin, carController.deleteCar);
+router.get("/deleted-cars", authenticate.authenticateToken, authenticate.authenticateAdmin, carController.getDeletedCars);
 
 module.exports = router;

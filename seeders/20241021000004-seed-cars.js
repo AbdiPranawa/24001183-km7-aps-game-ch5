@@ -16,9 +16,9 @@ module.exports = {
         userId: userIds[i % userIds.length].id,
         createdBy: userIds[i % userIds.length].id,
         updatedBy: userIds[i % userIds.length].id,
-        deletedBy: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        deletedAt: null,
       });
     }
 
