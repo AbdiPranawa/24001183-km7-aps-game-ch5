@@ -1,1 +1,4 @@
-![My Image](/public/images/db-diagram.png)
+## Deskripsi
+
+email : superadmin@mail.com
+password : superadmin123
